@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Category;
+use App\Favorite;
 use App\Publication;
 use App\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -47,7 +48,69 @@ class PublicationController extends Controller
     function favoritesByUser()
     {
         try {
-            $favorites = User::find(\Auth::id())->favorites;
+            $squashArray = function (array $total, array $current) {
+
+                $existsFilter = function ($item) use ($current) {
+                    return $item['name'] === $current['name'];
+                };
+
+                $notExistsFilter = function ($item) use ($current) {
+                    return $item['name'] !== $current['name'];
+                };
+
+                $increase = function ($exists, $current) {
+                    array_push($exists['publications'], [
+                            'header' => $current['header'],
+                            'description' => $current['desc'],
+                            'text' => $current['text'],
+                            'image' => $current['pub_img']
+                        ]
+                    );
+
+                    return [
+                        'name' => $current['name'],
+                        'image' => $current['image'],
+                        'publications' => $exists['publications']
+                    ];
+                };
+
+                $create = function ($current) {
+                    return [
+                        'name' => $current['name'],
+                        'image' => $current['image'],
+                        'publications' => [0 => [
+                            'header' => $current['header'],
+                            'description' => $current['desc'],
+                            'text' => $current['text'],
+                            'image' => $current['pub_img']
+                        ]
+                        ]
+                    ];
+                };
+
+                if ($exists = $this->first(array_filter($total, $existsFilter))) {
+                    return array_merge(array_filter($total, $notExistsFilter), [$increase($exists, $current)]);
+                } else {
+                    return array_merge($total, [$create($current)]);
+                }
+
+            };
+
+            $favorites = Favorite::select([
+                'categories.name',
+                'categories.image',
+                'header',
+                'description as desc',
+                'text',
+                'publications.image as pub_img'
+            ])
+                ->join('publications', 'publications.id', 'publication_id')
+                ->join('categories', 'categories.id', 'category_id')
+                ->where('user_id', \Auth::id())
+                ->get()
+                ->toArray();
+
+            $favorites = $this->reduce($squashArray, $favorites, []);
 
             return response()->json([
                 'data' => $favorites
@@ -56,4 +119,15 @@ class PublicationController extends Controller
             return response()->json([], 500);
         }
     }
+
+    private function reduce(callable $func, array $array, $initial = null)
+    {
+        return array_reduce($array, $func, $initial);
+    }
+
+    private function first($array)
+    {
+        return reset($array);
+    }
+
 }
