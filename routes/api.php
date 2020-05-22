@@ -9,4 +9,4 @@ Route::get('categories', 'CategoryController@categories');
 Route::get('favorites', 'PublicationController@favoritesByUser');
 Route::post('login', 'ProfileController@getUserInfo');
 
-//Route::get('image', 'CategoryController@getImage');
+Route::get('image', 'CategoryController@getImage');

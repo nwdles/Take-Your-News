@@ -15,8 +15,21 @@ class PublicationController extends Controller
         try {
             $category = Category::findOrFail($id);
 
+            $data = Publication::where('category_id', $id)->get()->toArray();
+
+            $data = array_map(function($item) {
+                return [
+                    'id' => $item['id'],
+                    'header' => $item['header'],
+                    'description' => $item['description'],
+                    'text' => $item['text'],
+                    'image' => asset($item['image']),
+                    'category_id' => $item['category_id']
+                ];
+            }, $data);
+
             return response()->json([
-                'data' => Publication::where('category_id', $id)->get()
+                'data' => $data
             ], 200);
         } catch (ModelNotFoundException $e) {
             return response()->json([], 400);
@@ -30,7 +43,17 @@ class PublicationController extends Controller
         try {
             $category = Category::findOrFail($categoryId);
             $publication = Publication::where('category_id', $categoryId)
-                ->where('id', $publicationId)->first();
+                ->where('id', $publicationId)->first()->toArray();
+            $publication = [
+                    'id' => $publication['id'],
+                    'header' => $publication['header'],
+                    'description' => $publication['description'],
+                    'text' => $publication['text'],
+                    'image' => asset($publication['image']),
+                    'category_id' => $publication['category_id']
+                ];
+
+
             if ($publication) {
                 return response()->json([
                     'data' => $publication
@@ -63,13 +86,13 @@ class PublicationController extends Controller
                             'header' => $current['header'],
                             'description' => $current['desc'],
                             'text' => $current['text'],
-                            'image' => $current['pub_img']
+                            'image' => asset($current['pub_img'])
                         ]
                     );
 
                     return [
                         'name' => $current['name'],
-                        'image' => $current['image'],
+                        'image' => asset($current['image']),
                         'publications' => $exists['publications']
                     ];
                 };
@@ -77,12 +100,12 @@ class PublicationController extends Controller
                 $create = function ($current) {
                     return [
                         'name' => $current['name'],
-                        'image' => $current['image'],
+                        'image' => asset($current['image']),
                         'publications' => [0 => [
                             'header' => $current['header'],
                             'description' => $current['desc'],
                             'text' => $current['text'],
-                            'image' => $current['pub_img']
+                            'image' => asset($current['pub_img'])
                         ]
                         ]
                     ];
